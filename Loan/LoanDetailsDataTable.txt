@@ -1,0 +1,228 @@
+                                 HTML-FILE
+
+
+<template>
+    <lightning-card title="Loan Details" icon-name="standard:account">
+        <div class="slds-grid slds-gutters">
+            <div class="slds-col">
+                <lightning-combobox
+                                name="Status"
+                                value={Status}
+                                placeholder="Search Status"
+                                options={StatusPickListValues}
+                                onchange={handleChange}
+                ></lightning-combobox>
+            </div>
+            <div class="slds-col">
+                <div><lightning-layout-item size="4" padding="around-small"></lightning-layout-item></div>
+                <lightning-button label="Search Status" variant="Brand" onrowaction={handleRowAction} onclick={handleSearch}></lightning-button>
+            </div>
+        </div>
+        <div class="slds-clearfix">
+        <div class="slds-float_right">
+            <lightning-button label="Edit" value={recIdToPass} disabled={disabled} onclick={passToParent}></lightning-button>
+            &nbsp;&nbsp;&nbsp;<lightning-button  label="Delete" onclick={handleDelete}></lightning-button>
+        </div>
+    </div>
+    <div class="slds-m-around_medium">
+            <template if:true={data}>
+                <lightning-datatable key-field="Id" data={data} columns={columns} checkbox-column="true"
+                    show-row-number-column="true" onrowselection={getSelectedIdAction}  >
+                </lightning-datatable>
+            </template>
+            <template if:true={error}>
+                {error}>
+            </template>
+    </div>
+</lightning-card>   
+</template>
+
+
+
+JSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJS
+
+import { LightningElement, track, wire, api } from 'lwc';
+import retriveRecord from '@salesforce/apex/LoanDeatilsDataTableController.retriveRecord';
+import delRecords from '@salesforce/apex/LoanDeatilsDataTableController.delRecords';
+import {ShowToastEvent} from 'lightning/platformShowToastEvent';
+
+
+const columns = [
+    {label:"Name",fieldName:"Name", type:"text"},
+    {label:"Loan Number", fieldName:"Loan_Number__c", type:"text"},
+    {label:"Loan Amount", fieldName:"Loan_Amount__c", type:"number"},
+    {label:"Recovery Amount", fieldName:"Recovery_Amount__c", type:"number"},
+    {label:"Status", fieldName:"Status__c",type:"picklist"}
+];
+ 
+export default class LoanDetailsDataTable  extends LightningElement {
+    @track data;
+    @track error;
+    @track columns = columns;
+    @track searchString;
+    @track initialRecords;
+    @track SearchValue;
+    @track viewRecordId;
+   
+
+    @wire(retriveRecord)
+    wiredRetriveRecord({ data, error }) {
+        if (data) {
+            this.data = data;
+            this.initialRecords = data;
+            console.log(data);
+            this.error = undefined;
+        } else if (error) {
+            this.error = error;
+            this.data = undefined;
+        }
+    }
+
+StatusPickListValues = [
+    { label: '--All--', value: '' },
+    { label: 'Initial', value: 'Initial' },
+    { label: 'Call', value: 'Call' },
+    { label: 'Recovery Team', value: 'Recovery Team' },
+    { label: 'Recovered', value: 'Recovered' },
+    { label: 'Dispute', value: 'Dispute' },
+];
+
+handleChange(event) {
+    this[event.target.name] = event.target.value;
+    this.SearchValue = this[event.target.name];
+    console.log("Status field value is ", this[event.target.name]);
+    //console.log("Search status value is ", this.SearchValue);
+    }
+// 
+    handleSearch() {
+        //alert('heyy!!...');
+        console.log("Search status-field value is ",this.SearchValue);
+        const searchKey = this.SearchValue.toLowerCase();
+      
+        if (searchKey) {
+            this.data = this.initialRecords;
+ 
+            if (this.data) {
+                let searchRecords = [];
+ 
+                for (let record of this.data) {
+                    let valuesArray = Object.values(record);
+                   // console.log('valuesArray--->',valuesArray);
+ 
+                    for (let val of valuesArray) {
+                        console.log('val is ' + val);
+                        let strVal = String(val);
+ 
+                        if (strVal) {
+ 
+                            if (strVal.toLowerCase().includes(searchKey)) {
+                                searchRecords.push(record);
+                              //  console.log('record-->',record);
+                                break;
+                            }
+                        }
+                    }
+                }
+                console.log('Matched Accounts are ' + JSON.stringify(searchRecords));
+                this.data = searchRecords;
+            }
+        } else {
+            this.data = this.initialRecords;
+        }
+    } 
+    //////////////////////////////////////////////////////////////
+@api viewRecordId;
+@api selectedRowlist=[];
+disabled = false;
+
+getSelectedIdAction(event){
+    const selectedRows = event.detail.selectedRows;
+    var numberOfCheckboxesSelected = selectedRows.length;
+    console.log('numberOfCheckboxesSelected--->',numberOfCheckboxesSelected);
+    if(numberOfCheckboxesSelected > 1){
+        this.disabled = true;
+    }else{
+        this.disabled = false;
+    }
+    console.log('selectedContactRows---->',selectedRows);
+    this.viewRecordId = selectedRows[0].Id;
+    console.log('viewRecordId --->',this.viewRecordId);
+    this.selectedRows=[];
+
+    for (let i = 0; i<selectedRows.length; i++){
+        this.selectedRowlist.push(selectedRows[i].Id);
+        console.log('selected Row list Ids to delete--->',this.selectedRowlist);
+    }
+}
+
+handleDelete(){
+    console.log('handle delete invoked');
+    delRecords({selecRecords: this.selectedRowlist })
+    .then((result)=>{
+        console.log("Return from Apex"+result);
+         this.template.querySelector('lightning-datatable').selectedRows=[];
+        });
+         const toastEvent = new ShowToastEvent({
+            title:'Success!',
+            message:'Record deleted successfully',
+            variant:'success'
+          });
+          this.dispatchEvent(toastEvent)
+       // return refreshApex(this.data);
+    
+    .catch((error)=>{
+        this.errorMessage=error;
+        console.log('unable to delete the record due to'+JSON.stringify(this.errorMessage));
+    });
+
+}
+
+recIdToPass;
+passToParent() 
+{
+    this.recIdToPass = this.viewRecordId;
+    console.log( 'Selected Record Id is ' + this.recIdToPass );
+    this.dispatchEvent( new CustomEvent( 'pass', {detail: this.recIdToPass} ) );  
+
+    this.dispatchEvent( new CustomEvent('view'));
+}
+
+} 
+
+    
+
+
+APEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEX
+
+public with sharing class LoanDeatilsDataTableController {
+
+    @AuraEnabled(cacheable=true)
+    public static List<Loan_Details__c> retriveRecord(){
+        return [ SELECT Id,Name,Loan_Number__c,Loan_Amount__c,Recovery_Amount__c,Status__c 
+        FROM Loan_Details__c  
+        LIMIT 200];
+    }      
+
+    @AuraEnabled
+    public static Boolean delRecords(List<String> selecRecords){
+        List<Loan_Details__c> returnlist=new List<Loan_Details__c>();
+        for(Loan_Details__c delRow:[SELECT Id,Name,Loan_Number__c,Loan_Amount__c,Recovery_Amount__c,Status__c 
+        FROM Loan_Details__c  where Id in:selecRecords]){
+            returnlist.add(delRow);
+
+        }
+        if(returnlist.size()>0){
+            try{
+                delete returnlist;
+                return true;
+            }
+            catch(Exception  e){
+                System.debug(e);
+            }
+        }else {
+            return false;
+        }
+        return false;
+        
+    }
+}

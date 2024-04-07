@@ -1,0 +1,175 @@
+////////////////////////////////////////////////Apex-Cls///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+public class LoanDetailsFormController {
+            @AuraEnabled
+            public static Loan_Details__c SubmitLoanAction(String LoanName, String LoanNumber, Integer NumberOfEMI, Date LoanStartDate,
+             Date LoanMaturityDate, Integer LoanAmount, Integer RecoveryAmount, String Asset, String Status){
+        
+                Loan_Details__c loanObj = new Loan_Details__c();
+                loanObj.Name = LoanName;
+                loanObj.Loan_Number__c = LoanNumber;
+                loanObj.Number_Of_EMI__c = NumberOfEMI;
+                loanObj.Loan_Start_Date__c = LoanStartDate;
+                loanObj.Loan_Maturity_Date__c = LoanMaturityDate;
+                loanObj.Loan_Amount__c = LoanAmount;
+                loanObj.Recovery_Amount__c = RecoveryAmount;
+                loanObj.Asset__c = Asset;
+                loanObj.Status__c = Status;
+        
+                insert loanObj; 
+                return loanObj;
+            }
+       }
+
+
+/////////////////////////////////////////////////HTML-File/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+<template>
+    <lightning-card title="LOAN-DETAILS FORM ">
+    
+        <lightning-input label="Name" type="text" value={loanObjName} name="LoanName" onchange={loanhandleChange} required="true" ></lightning-input>
+        <lightning-input label="Loan Number" type="text" value={loanObjLoanNumber} name="LoanNumber" onchange={loanhandleChange} required="true"></lightning-input>
+        <lightning-input label="Number Of EMI " type="number" value={loanObjNumberOfEMI} name="NumberOfEMI" onchange={loanhandleChange} required="true"></lightning-input>
+        <lightning-input label="Loan Start Date " type="date" value={loanObjLoanStartDate} name="LoanStartDate" onchange={loanhandleChange} required="true" ></lightning-input>
+        <lightning-input label="Loan Maturity Date " type="date" value={loanObjLoanMaturityDate} name="LoanMaturityDate" onchange={loanhandleChange} required="true"></lightning-input>
+        <lightning-input label="Loan Amount" type="number" value={loanObjLoanAmount} name="LoanAmount" onchange={loanhandleChange} required="true"></lightning-input>
+        <lightning-input label="Recovery Amount" type="number" value={loanObjRecoveryAmount} name="RecoveryAmount" onchange={loanhandleChange} required="true"></lightning-input>
+       
+        <lightning-combobox label="Asset" value={Value} options={options} onchange={handleAssetChange} required="true"></lightning-combobox>
+        <lightning-combobox label="Status" value={Value1} options={option} onchange={handleStatusChange} required="true"></lightning-combobox>
+    
+        <div slot="footer"> 
+          <lightning-button label="Submit" variant="brand" onclick={SubmitAction}></lightning-button>
+        </div>
+    </lightning-card>  
+
+</template>
+     
+
+////////////////////////////////////////////////////Js-File////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+import { LightningElement, track} from 'lwc';
+import SubmitLoanAction from '@salesforce/apex/LoanDetailsFormController.SubmitLoanAction';
+import {ShowToastEvent} from 'lightning/platformShowToastEvent';
+import {NavigationMixin} from 'lightning/navigation';
+
+export default class LoandetailsForm extends LightningElement {
+    @track loanObjName;
+    @track loanObjLoanNumber;
+    @track loanObjNumberOfEMI;
+    @track loanObjLoanStartDate;   
+    @track loanObjLoanMaturityDate;
+    @track loanObjLoanAmount; 
+    @track loanObjRecoveryAmount;
+    @track value;
+    @track value1;   
+    @track loanId;
+    @track errorMsg;
+
+    loanhandleChange(event){
+        if(event.target.name == 'LoanName'){
+        this.loanObjName = event.target.value;
+            }
+        if(event.target.name == 'LoanNumber'){
+            this.loanObjLoanNumber = event.target.value;
+            }
+        if(event.target.name == 'NumberOfEMI'){
+                this.loanObjNumberOfEMI = event.target.value;
+            }
+        if(event.target.name == 'LoanStartDate'){
+        this.loanObjLoanStartDate = event.target.value;
+            }
+        if(event.target.name == 'LoanMaturityDate'){
+            this.loanObjLoanMaturityDate = event.target.value;
+            }
+        if(event.target.name == 'LoanAmount'){
+            this.loanObjLoanAmount = event.target.value;
+            }
+        if(event.target.name == 'RecoveryAmount'){
+            this.loanObjRecoveryAmount = event.target.value;
+            }
+    }
+        @track value = 'none';
+            get options() {
+            return [
+                 { label: 'None', value: 'None' },
+                 { label: 'Two Wheeler', value: 'Two Wheeler' },
+                 { label: 'Car', value: 'Car' },
+                 { label: 'Personal', value: 'Personal' },
+                 { label: 'Appliances', value: 'Appliances' },
+               ];
+             }
+        handleAssetChange(event) {
+            this.value = event.detail.value;
+         }
+        @track value1 = 'none';
+           get option() {
+           return [
+                 { label: 'None', value: 'none' },
+                 { label: 'Initial', value: 'Initial' },
+                 { label: 'Call', value: 'Call' },
+                 { label: 'Recovery Team', value: 'Recovery Team' },
+                 { label: 'Recovered', value: 'Recovered' },
+                 { label: 'Dispute', value: 'Dispute' },
+               ];
+            }
+         handleStatusChange(event) {
+            this.value1 = event.detail.value;
+          }         
+    
+          SubmitAction(){
+            SubmitLoanAction({
+                LoanName : this.loanObjName,
+                LoanNumber : this.loanObjLoanNumber,
+                NumberOfEMI : this.loanObjNumberOfEMI,
+                LoanStartDate : this.loanObjLoanStartDate,
+                LoanMaturityDate : this.loanObjLoanMaturityDate,
+                LoanAmount : this.loanObjLoanAmount,
+                RecoveryAmount : this.loanObjRecoveryAmount,
+                Asset : this.value,
+                Status : this.value1})
+    
+                .then(result=>{
+                    this.loanId = result.Id;
+                    const toastEvent = new ShowToastEvent({
+                        title:'success!',
+                        message:'record saved successfully',
+                        variant:'Success'
+                    });
+                    this.dispatchEvent(toastEvent);
+
+                    this[NavigationMixin.Navigate]({
+                        // type: 'standard__recordPage',
+                        attributes: {
+                        recordId: this.loanId,
+                        objectApiName: 'Loan_Details__c',
+                        actionName: 'view'
+                        },
+                        });
+                    })
+                        .catch(error =>{
+                           // this.errorMsg=error.message;
+                            // window.console.log(this.error);
+                            const Error = new ShowToastEvent({
+                                title:'error!',
+                                message:error.body.message,
+                                variant:'error'
+                            });
+                            this.dispatchEvent(Error);
+                         });     
+                   }    
+             }
+
+////////////////////////////////////////////////js-meta.xml File///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>56.0</apiVersion>
+    <isExposed>true</isExposed>
+    <targets>
+       <target>lightning__AppPage</target>
+       <target>lightning__HomePage</target>
+       <target>lightning__RecordPage</target>
+    </targets>
+</LightningComponentBundle>

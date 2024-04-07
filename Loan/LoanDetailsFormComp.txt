@@ -1,0 +1,331 @@
+<template>
+  <form>
+  <lightning-card title="LOAN-DETAILS FORM ">
+    <!-- <div class="slds-float_right">
+      <lightning-button variant="brand" label="View" onclick={ViewAction} ></lightning-button>
+  </div> 
+    Value entered in Child LWC is {childRecordId}<br/><br/>-->
+   
+    <div class="slds-grid slds-gutters">
+      
+      <div class="slds-col">
+      <lightning-input label="Name" type="text" value={loanObjName} name="LoanName" onchange={loanhandleChange} ></lightning-input>
+      <lightning-input label="Loan Number" type="text" value={loanObjLoanNumber} name="LoanNumber" onchange={loanhandleChange}></lightning-input>
+      <lightning-input label="Loan Start Date " type="date" value={loanObjLoanStartDate} name="LoanStartDate" onchange={loanhandleChange}></lightning-input>
+      <lightning-input label="Loan Amount" type="number" value={loanObjLoanAmount} name="LoanAmount" onchange={loanhandleChange}></lightning-input>
+      <lightning-combobox id="AssetCombo" label="Asset" value={value} options={options} onchange={handleAssetChange} required=true></lightning-combobox>
+      </div>
+
+      <div class="slds-col">
+      <lightning-input label="Number Of EMI " type="number" value={loanObjNumberOfEMI} name="NumberOfEMI" onchange={loanhandleChange}></lightning-input>
+      <lightning-input label="Loan Maturity Date " type="date" value={loanObjLoanMaturityDate} name="LoanMaturityDate" onchange={loanhandleChange}></lightning-input>
+      <lightning-input label="Recovery Amount" type="number" value={loanObjRecoveryAmount} name="RecoveryAmount" onchange={loanhandleChange}></lightning-input>
+      <lightning-combobox label="Status" value={value1} options={option} onchange={handleStatusChange} required=true></lightning-combobox>
+      <div><lightning-layout-item size="4" padding="around-small"></lightning-layout-item></div>
+      <c-custom-lookup name="AccountId" value={loanObjAccountId}  obj-name="Account" 
+      search-placeholder="Search Accounts" onlookupselected={handleAccountSelection}> </c-custom-lookup>
+      </div>
+    </div>
+      <div slot="footer"> 
+        <lightning-button label="Reset" variant="Brand" onclick={handleReset}></lightning-button>
+        &nbsp;&nbsp;<lightning-button label="Save" variant="Brand" onclick={SubmitAction}></lightning-button>
+      </div>
+  </lightning-card>
+  <div class="slds-box slds-theme_default"> 
+     <c-loan-details-data-table  onpass={fetchValue} onview={ViewAction}></c-loan-details-data-table>
+  </div>
+</form>
+</template>
+
+
+JSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJSJS
+import { LightningElement, track, api,wire} from 'lwc';
+import SubmitLoanAction from '@salesforce/apex/LoanDetailsFormController.SubmitLoanAction';
+import editAction  from '@salesforce/apex/LoanDetailsFormController.editAction';
+import {ShowToastEvent} from 'lightning/platformShowToastEvent';
+import {NavigationMixin} from 'lightning/navigation';
+
+export default class LoandetailsForm extends LightningElement {
+@track loanObjName;
+@track loanObjLoanNumber;
+@track loanObjNumberOfEMI;
+@track loanObjLoanStartDate;   
+@track loanObjLoanMaturityDate;
+@track loanObjLoanAmount; 
+@track loanObjRecoveryAmount;
+@track value;
+@track value1;
+@api loanObjAccountId;
+@track loanId;
+@api viewRecordId;
+
+loanhandleChange(event){
+    switch ( event.target.name ) { 
+        case "LoanName":
+            this.loanObjName = event.detail.value;
+            break;
+        case "LoanNumber":            
+            this.loanObjLoanNumber = event.detail.value;
+            break;
+        case "NumberOfEMI":
+            this.loanObjNumberOfEMI = event.detail.value;
+            break;
+        case "LoanNumber":            
+            this.loanObjLoanNumber = event.detail.value;
+            break;
+        case "LoanStartDate":
+            this.loanObjLoanStartDate = event.detail.value;
+            break;
+        case "LoanMaturityDate":            
+            this.loanObjLoanMaturityDate = event.detail.value;
+            break;
+         case "LoanAmount":
+            this.loanObjLoanAmount = event.detail.value;
+            break;
+        case "RecoveryAmount":            
+            this.loanObjRecoveryAmount = event.detail.value;
+            break;
+    }
+}
+@track value = '';
+get options() {
+return [
+        { label:'None', value:''},
+        { label: 'Two Wheeler', value: 'Two Wheeler' },
+        { label: 'Car', value: 'Car' },
+        { label: 'Personal',value: 'Personal'},
+        { label: 'Appliances', value: 'Appliances' },
+    ];
+    }
+handleAssetChange(event) {
+this.value = event.detail.value;
+}
+@track value1 = '';
+get option() {
+return [
+    {label:'None', value:''},
+    { label: 'Initial', value: 'Initial' },
+    { label: 'Call', value: 'Call' },
+    { label: 'Recovery Team', value: 'Recovery Team' },
+    { label: 'Recovered', value: 'Recovered' },
+    { label: 'Dispute', value: 'Dispute' },
+];
+}
+handleStatusChange(event) {
+this.value1 = event.detail.value;
+}  
+    SubmitAction(){
+    var today = new Date();
+    var dd = String(today.getDate()).padStart(2, '0');
+    var mm = String(today.getMonth() + 1).padStart(2, '0');; //January is 0!
+    var yyyy = today.getFullYear();
+    today = yyyy + '-' + mm + '-' + dd;
+    console.log(today,'--->current date');
+
+    
+    var Validation =true;
+    if(this.loanObjName == undefined || (this.loanObjName).length < 3){
+        Validation=false;
+        this.newToastMessage('error', 'Invalid Name','Name should be greater than 3 characters');
+    }
+    if (this.value == ''){  
+        Validation=false;
+        this.newToastMessage('error', 'Invalid Asset','select the Asset field');   
+    }
+    if (this.value1 == ''){  
+        Validation=false;
+        this.newToastMessage('error', 'Invalid Status','select the Status field');   
+    }
+    if(this.loanObjNumberOfEMI == undefined || (this.loanObjNumberOfEMI) == NaN){
+        Validation=false;
+        this.newToastMessage('error', 'Invalid EMI Number','EMI Number should be of 6 digits');  
+    } 
+    if(this.loanObjLoanAmount == undefined || (this.loanObjLoanAmount) == NaN){
+        Validation=false;
+        this.newToastMessage('error', 'Invalid Amount','Loan Amount should only consist of numbers');  
+    }
+    if(this.loanObjRecoveryAmount == undefined || (this.loanObjRecoveryAmount) == NaN){
+        Validation=false;
+        this.newToastMessage('error', 'Invalid Recovery Amount','Recovery Amount should only consist of numbers');  
+    }
+    if (this.loanObjLoanStartDate > today || (this.loanObjLoanStartDate) == undefined){
+        Validation=false;
+        this.newToastMessage('error','Invalid StartDate','Date should be today or earlier');
+    }
+    if(this.loanObjLoanMaturityDate < (this.loanObjLoanStartDate) || (this.loanObjLoanMaturityDate) == undefined){
+        Validation=false;
+        this.newToastMessage('error','Invalid MaturityDate','Date should be today or future');
+    }
+    if(this.loanObjAccountId == undefined){
+        Validation=false;
+        this.newToastMessage('error','Empty!! ','Select Account field');
+    }
+    if(this.loanObjLoanNumber == undefined){
+        Validation=false;
+        this.newToastMessage('error','Empty!! ','Please fill Loan Number field');
+    }
+    
+    if(Validation){
+        SubmitLoanAction({
+            viewRecordId : this.childRecordId,
+            LoanName : this.loanObjName,
+            LoanNumber : this.loanObjLoanNumber,
+            NumberOfEMI : this.loanObjNumberOfEMI,
+            LoanStartDate : this.loanObjLoanStartDate,
+            LoanMaturityDate : this.loanObjLoanMaturityDate,
+            LoanAmount : this.loanObjLoanAmount,
+            RecoveryAmount : this.loanObjRecoveryAmount,
+            Asset : this.value,
+            Status : this.value1,
+            AccountId : this.loanObjAccountId})
+
+            .then(result=>{
+                this.loanId = result.Id;
+                const toastEvent = new ShowToastEvent({
+                    title:'success!',
+                    message:'record saved successfully',
+                    variant:'Success'
+                });
+                this.dispatchEvent(toastEvent);
+                window.location.reload();
+                
+
+                this[NavigationMixin.Navigate]({
+                 type: 'standard__recordPage',
+                    attributes: {
+                    recordId: this.loanId,
+                    objectApiName: 'Loan_Details__c',
+                    actionName: 'view'
+                    },
+                    });
+                })
+                .catch(error =>{
+                const Error = new ShowToastEvent({
+                    title:'error!',
+                    message:error.body.message,
+                    variant:'error'
+                });
+          
+                this.dispatchEvent(Error);
+                });     
+            } 
+        }
+            handleAccountSelection(event){
+                console.log("the selected record id is "+event.detail);
+                if(event.target.name == 'AccountId'){
+                    this.loanObjAccountId = event.detail;
+                }
+            }
+    
+            newToastMessage(toastType, toastTitle,  message){
+                console.log('toast callase');
+                const toastobj = new ShowToastEvent({
+                    title:toastTitle,
+                    message:message,
+                    variant:toastType
+                });
+                this.dispatchEvent(toastobj);    
+            }
+        
+        childRecordId;
+        fetchValue( event ) {
+            console.log( 'Record Id from Child LWC is ' + event.detail );
+            this.childRecordId = event.detail;
+        }
+    
+        ViewAction(){
+            console.log('Id passed to Apex'+this.childRecordId);
+            editAction({viewRecordId : this.childRecordId})
+                .then((data) => {
+                    alert('apex inoked');
+                    console.log(data);
+                    this.loanObjName=data[0].Name;
+                    console.log('Name set to '+this.loanObjName);
+                    this.loanObjLoanNumber=data[0].Loan_Number__c;
+                    console.log('Loan Number set to '+this.loanObjLoanNumber);
+                    this.loanObjNumberOfEMI=data[0].Number_Of_EMI__c;
+                    console.log('Emi set to '+this.loanObjNumberOfEMI);
+                    this.loanObjLoanStartDate=data[0].Loan_Start_Date__c;
+                    console.log('Start date set to '+this.loanObjLoanStartDate);
+                    this.loanObjLoanMaturityDate=data[0].Loan_Maturity_Date__c;
+                    console.log('Maturity Date set to '+this.loanObjLoanMaturityDate);
+                    this.loanObjLoanAmount=data[0].Loan_Amount__c;
+                    console.log('Loan Amount set to '+this.loanObjLoanAmount);
+                    this.loanObjRecoveryAmount=data[0].Recovery_Amount__c;
+                    console.log('Recovery amount set to '+this.loanObjRecoveryAmount);
+                    this.value=data[0].Asset__c;
+                    console.log('value set to '+this.value);
+                    this.value1=data[0].Status__c;
+                    console.log('value1 set to '+this.value1);
+                    this.loanObjAccountId=data[0].AccountId__c;
+                    console.log('Account Id set to '+ this.loanObjAccountId);
+                    
+                })
+                .catch((error) => {
+                    console.log(error);
+                });
+        } 
+
+    handleReset(){
+       // this.template.querySelector('form').reset();
+        this.loanObjName='',
+        this.loanObjLoanNumber='',
+        this.loanObjNumberOfEMI='',
+        this.loanObjLoanStartDate='',
+        this.loanObjLoanMaturityDate='',
+        this.loanObjLoanAmount='',
+        this.loanObjRecoveryAmount='',
+        this.value='',
+        this.value1='',
+        this.loanObjAccountId=null
+    }
+}
+
+APEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEXAPEX
+public class LoanDetailsFormController {
+            @AuraEnabled
+            public static Loan_Details__c SubmitLoanAction(String viewRecordId,String LoanName, String LoanNumber, Integer NumberOfEMI, Date LoanStartDate,
+             Date LoanMaturityDate, Integer LoanAmount, Integer RecoveryAmount, String Asset, String Status, String AccountId){
+        
+                System.debug('AccountId'+AccountId);
+                 
+                Loan_Details__c loanObj = new Loan_Details__c();
+                loanObj.Id = viewRecordId;
+                loanObj.Name = LoanName;
+                loanObj.Loan_Number__c = LoanNumber;
+                loanObj.Number_Of_EMI__c = NumberOfEMI;
+                loanObj.Loan_Start_Date__c = LoanStartDate;
+                loanObj.Loan_Maturity_Date__c = LoanMaturityDate;
+                loanObj.Loan_Amount__c = LoanAmount;
+                loanObj.Recovery_Amount__c = RecoveryAmount;
+                loanObj.Asset__c = Asset;
+                loanObj.Status__c = Status;
+                loanObj.AccountId__c = AccountId;
+                 
+                System.debug('LoanName-->'+LoanName);
+                System.debug('LoanNumber-->'+LoanNumber);
+                System.debug('NumberOfEMI-->'+NumberOfEMI);
+                System.debug('LoanStartDate-->'+LoanStartDate);
+                System.debug('LoanMaturityDate-->'+LoanMaturityDate);
+                System.debug('LoanAmount-->'+LoanAmount);
+                System.debug('RecoveryAmount-->'+RecoveryAmount);
+                System.debug('Asset-->'+Asset);
+                System.debug('Status-->'+Status);
+                System.debug('AccountId'+AccountId);
+    
+                UPSERT loanObj;
+                return loanObj;
+
+            }
+
+
+
+             @AuraEnabled(cacheable=true)
+            public static List<Loan_Details__c> editAction(String viewRecordId){
+                 System.debug('recordId---->'+ viewRecordId); 
+                 return [SELECT Id,Name,Loan_Number__c,Number_Of_EMI__c,Loan_Start_Date__c,Loan_Maturity_Date__c,Loan_Amount__c,
+                        Recovery_Amount__c,Asset__c,Status__c,AccountId__c
+                        FROM Loan_Details__c
+                        WHERE Id =:viewRecordId];  
+            }
+        }
